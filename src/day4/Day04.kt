@@ -44,7 +44,9 @@ fun main() {
     check(part2(testInput) == 1924)
 
     val input = readInput("day4/input")
+    print("(should be 55770) ")
     println(part1(input))
+    print("(should be 2980) ")
     println(part2(input))
 }
 
@@ -58,12 +60,12 @@ fun readInputs(numbersLine: String): List<Int> = numbersLine.split(",").map { it
 fun readBoards(definitions: List<String>): List<Board> =
     definitions.filter { it.isNotEmpty() }
         .chunked(5)
-        .map { rawDef ->
-            val def = rawDef.map { it.trim().split("\\s+".toRegex()) }
+        .map { rawBoardDef ->
+            val boardDef = rawBoardDef.map { it.trim().split("\\s+".toRegex()) }
 
-            val rows = def.map { parseRowCol(it) }
-            val cols = def.indices.map { column ->
-                parseRowCol(def.map { it[column] })
+            val rows = boardDef.map { parseRowCol(it) }
+            val cols = boardDef.indices.map { column ->
+                parseRowCol(boardDef.map { it[column] })
             }
             Board(rows, cols)
         }
@@ -81,13 +83,13 @@ data class Board(val rows: List<RowCol>, val columns: List<RowCol>) {
         rows.flatMap { it.getUnmarked() }.toSet()
 }
 
-data class RowCol(val numbers: MutableSet<Int>, val marked: MutableSet<Int> = mutableSetOf()) {
+data class RowCol(val numbers: MutableSet<Int>) {
     fun markNumber(number: Int) {
-        marked.add(number)
+        numbers.remove(number)
     }
 
-    fun allMarked(): Boolean = getUnmarked().isEmpty()
-    fun getUnmarked(): Set<Int> = numbers - marked
+    fun allMarked(): Boolean = numbers.isEmpty()
+    fun getUnmarked(): Set<Int> = numbers
 }
 
 fun parseRowCol(rowLine: List<String>): RowCol = RowCol(rowLine.map { it.toInt() }.toMutableSet())
