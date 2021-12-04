@@ -17,3 +17,7 @@ tasks {
         gradleVersion = "7.3"
     }
 }
+
+dependencies {
+    implementation("io.arrow-kt:arrow-core:1.0.1")
+}
