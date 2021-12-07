@@ -3,6 +3,8 @@ package day7
 import readInput
 import kotlin.math.absoluteValue
 
+class Foo
+
 fun main() {
     fun solve(input: List<Int>, calcFuel: (Int, List<Int>) -> Int): Int {
         val max = input.maxOf { it }
@@ -11,11 +13,12 @@ fun main() {
     }
 
 
+
     // test if implementation meets criteria from the description, like:
-    val testInput = readInput("day7/input_test").first().split(",").map { it.toInt() }
+    val testInput = readInput("${Foo::class.java.packageName}/input_test").first().split(",").map { it.toInt() }
     check(solve(testInput, ::linear) == 37)
 
-    val input = readInput("day7/input").first().split(",").map { it.toInt() }
+    val input = readInput("${Foo::class.java.packageName}/input").first().split(",").map { it.toInt() }
     println("Part 1 ${solve(input, ::linear)}")
 
     check(solve(testInput, ::summing) == 168)

@@ -20,4 +20,5 @@ tasks {
 
 dependencies {
     implementation("io.arrow-kt:arrow-core:1.0.1")
+    implementation("io.kotest:kotest-assertions-core:5.0.1")
 }

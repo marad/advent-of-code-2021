@@ -1,6 +1,9 @@
 package template
 
+import io.kotest.matchers.shouldBe
 import readInput
+
+class Foo
 
 fun main() {
     fun part1(input: List<String>): Int {
@@ -12,10 +15,12 @@ fun main() {
     }
 
     // test if implementation meets criteria from the description, like:
-    val testInput = readInput("dayX/input_test")
-    check(part2(testInput) == 0)
+    val testInput = readInput("${Foo::class.java.packageName}/input_test")
+    part1(testInput) shouldBe 0
 
-    val input = readInput("dayX/input")
-    println(part1(input))
-    println(part2(input))
+    val input = readInput("${Foo::class.java.packageName}/input")
+    println("part 1 solution: ${part1(input)}")
+
+    part2(testInput) shouldBe 0
+    println("part 2 solution: ${part2(input)}")
 }
