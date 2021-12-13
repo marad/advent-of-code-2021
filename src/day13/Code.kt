@@ -33,7 +33,7 @@ fun main() {
         repeat(maxY+1) { y ->
             repeat(maxX+1) { x ->
                 if (folded.contains(Point(x,y))) {
-                    print('#')
+                    print('█')
                 } else {
                     print(' ')
                 }
