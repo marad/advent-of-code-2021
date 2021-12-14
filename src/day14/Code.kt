@@ -9,7 +9,7 @@ fun main() {
     fun part1(input: List<String>): Long {
         val rules = readRules(input)
         var polymer = readTemplate(input)
-        val counts = simulateSteps2(polymer, rules, 10)
+        val counts = countLetters(simulateSteps2(polymer, rules, 10), polymer.last())
         val mostFrequent = counts.values.maxOf { it }
         val leastFrequent = counts.values.minOf { it }
         return mostFrequent - leastFrequent
@@ -18,7 +18,7 @@ fun main() {
     fun part2(input: List<String>): Long {
         val rules = readRules(input)
         var polymer = readTemplate(input)
-        val counts = simulateSteps2(polymer, rules, 40)
+        val counts = countLetters(simulateSteps2(polymer, rules, 40), polymer.last())
         val mostFrequent = counts.values.maxOf { it }
         val leastFrequent = counts.values.minOf { it }
         return mostFrequent - leastFrequent
@@ -32,7 +32,6 @@ fun main() {
     println("part 1 solution: ${part1(input)}")
 
     part2(testInput) shouldBe 2188189693529
-    println("Test input ok for part 2")
     println("part 2 solution: ${part2(input)}")
 }
 
@@ -49,70 +48,52 @@ fun readRules(input: List<String>): Map<String, Char> {
     }.toMap()
 }
 
-fun simulateSteps2(input: String, rules: Map<String, Char>, maxSteps: Int): Map<Char, Long> {
-    val result = mutableMapOf<Char, Long>()
-    val stack = ArrayDeque<Pair<Char, Int>>()
-    input.forEach { stack.addLast(it to 0) }
+fun simulateSteps2(input: String, rules: Map<String, Char>, maxSteps: Int): Map<String, Long> {
+    var result = mutableMapOf<String, Long>()
 
-    var printCounter = 0
-
-    while(stack.size >= 2) {
-        val (char, lastStep) = stack.removeFirst()
-        val (nextChar, _) = stack.first()
-        val expansion = rules["$char$nextChar"]
-
-        val nextStep = lastStep+1
-
-        if (expansion != null) {
-            stack.addFirst(expansion to nextStep)
-        }
-
-        stack.addFirst(char to nextStep)
-
-        while(stack.first().second >= maxSteps) {
-            val (c, _) = stack.removeFirst()
-            val count = result.getOrDefault(c, 0)
-            result[c] = count+1
-        }
-
-//        if (printCounter >= 1000) {
-//            print("\rStack size: ${stack.size}; Result: $result")
-//            print("\r$stack")
-//            printCounter = 0
-//        }
-//        printCounter++
+    // initial setup
+    var index = 0
+    while(index < input.length - 1) {
+        result[input.substring(index, index+2)] = 1
+        index+=1
     }
 
-    while(stack.isNotEmpty()) {
-        val (c, _) = stack.removeFirst()
-        val count = result.getOrDefault(c, 0)
-        result[c] = count+1
+    // simulate step $maxSteps times
+    repeat(maxSteps) {
+        // single step
+        val nextMap = mutableMapOf<String, Long>()
+        result.keys.forEach { pair ->
+            val expansion = rules[pair]
+            if (expansion != null) {
+                val value = result[pair]!!
+                val pairA = "${pair[0]}$expansion"
+                val pairB = "$expansion${pair[1]}"
+
+                val pairAValue = nextMap.getOrDefault(pairA, 0)
+                val pairBValue = nextMap.getOrDefault(pairB, 0)
+
+                nextMap[pairA] = pairAValue + value
+                nextMap[pairB] = pairBValue + value
+            }
+        }
+        result = nextMap
+
     }
 
     return result
 }
 
-fun simulateSteps(input: String, rules: Map<String,Char>, steps: Int): Map<Char, Int> {
-    var polymer = input
-    repeat(steps) {
-        polymer = polymer.expandTemplate(rules)
-        println(polymer)
-    }
-    return polymer.groupBy { it }.mapValues { it.value.size }
-}
+fun countLetters(polymer: Map<String, Long>, lastLetter: Char): Map<Char, Long> {
+    val result = mutableMapOf<Char, Long>()
 
-fun String.expandTemplate(rules: Map<String, Char>): String {
-    val sb = StringBuilder()
-    var index = 0
-    sb.append(first())
-    while(index <= length-2) {
-        val pair = substring(index, index+2)
-        var part = rules[pair]
-        if (part != null) {
-            sb.append(part)
-        }
-        sb.append(get(index+1))
-        index++
+    polymer.forEach {
+        val count = it.value
+        val charA = it.key[0]
+        val charACount = result.getOrDefault(charA, 0)
+        result[charA] = charACount + count
     }
-    return sb.toString()
+
+    val lastCount = result.getOrDefault(lastLetter, 0)
+    result[lastLetter] = lastCount + 1
+    return result
 }
