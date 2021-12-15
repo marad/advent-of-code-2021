@@ -5,22 +5,19 @@ import org.jgrapht.alg.shortestpath.BellmanFordShortestPath
 import org.jgrapht.graph.DefaultDirectedWeightedGraph
 import org.jgrapht.graph.DefaultEdge
 import readInput
+import java.lang.NullPointerException
 
 class Foo
 
 fun main() {
     fun part1(input: List<String>): Int {
         val map = readMap(input)
-        val end = Point(input[0].length-1, input.size-1)
-        return getShortestPathWeight(map, end)
+        return getShortestPathWeight(map, input[0].length, input.size)
     }
 
     fun part2(input: List<String>): Int {
         val map = readMap(input)
-        val bigMap = map.expand(input[0].length, input.size)
-        val end = Point(input[0].length*5-1, input.size*5-1)
-
-        return getShortestPathWeight(bigMap, end)
+        return getShortestPathWeight(map, input[0].length*5, input.size*5)
     }
 
     // test if implementation meets criteria from the description, like:
@@ -56,63 +53,56 @@ fun Map<Point, Int>.getPoint(point: Point, sizeX: Int, sizeY: Int): Int? {
     }
 }
 
-fun Map<Point, Int>.expand(xDim: Int, yDim: Int): Map<Point, Int> {
-    var x=0
-    var y=0
-    val newMap = mutableMapOf<Point, Int>()
-    while(y < yDim*5) {
-        while(x < xDim*5) {
-            newMap[Point(x,y)] = getPoint(Point(x,y), xDim, yDim)!!
-            x += 1
-        }
-        x = 0
-        y += 1
-    }
-    return newMap
-}
-
-fun getShortestPathWeight(map: Map<Point, Int>, endPoint: Point): Int {
+fun getShortestPathWeight(map: Map<Point, Int>, dimX: Int, dimY: Int): Int {
     val graph = DefaultDirectedWeightedGraph<Point, DefaultEdge>(DefaultEdge::class.java)
-    map.forEach {
-        graph.addVertex(it.key)
-        val right = it.key.right()
-        val canMoveRight = map[right] != null
-        if (canMoveRight) {
-            if (!graph.containsVertex(right)) graph.addVertex(right)
-            val edge = graph.addEdge(it.key, right)
-            graph.setEdgeWeight(edge, map[right]!!.toDouble())
-        }
 
-        val down = it.key.down()
-        val canMoveDown = map[down] != null
-        if (canMoveDown) {
-            if (!graph.containsVertex(down)) graph.addVertex(down)
-            val edge = graph.addEdge(it.key, down)
-            graph.setEdgeWeight(edge, map[down]!!.toDouble())
-        }
+    val mapMaxX = map.keys.maxOf { it.x } + 1
+    val mapMaxY = map.keys.maxOf { it.y } + 1
 
-        val up = it.key.up()
-        val canMoveUp = map[up] != null
-        if (canMoveUp) {
-            if (!graph.containsVertex(up)) graph.addVertex(up)
-            val edge = graph.addEdge(it.key, up)
-            graph.setEdgeWeight(edge, map[up]!!.toDouble())
-        }
+    repeat(dimY) { y ->
+        repeat(dimX) { x ->
 
-        val left = it.key.left()
-        val canMoveLeft = map[left] != null
-        if (canMoveLeft) {
-            if (!graph.containsVertex(left)) graph.addVertex(left)
-            val edge = graph.addEdge(it.key, left)
-            graph.setEdgeWeight(edge, map[left]!!.toDouble())
-        }
+            val point = Point(x,y)
 
+            graph.addVertex(point)
+            val right = point.right()
+            val canMoveRight = right.x < dimX
+            if (canMoveRight) {
+                if (!graph.containsVertex(right)) graph.addVertex(right)
+                val edge = graph.addEdge(point, right)
+                graph.setEdgeWeight(edge, map.getPoint(right, mapMaxX, mapMaxY)!!.toDouble())
+            }
+
+            val down = point.down()
+            val canMoveDown = down.y < dimY
+            if (canMoveDown) {
+                if (!graph.containsVertex(down)) graph.addVertex(down)
+                val edge = graph.addEdge(point, down)
+                graph.setEdgeWeight(edge, map.getPoint(down, mapMaxX, mapMaxY)!!.toDouble())
+            }
+
+            val up = point.up()
+            val canMoveUp = up.y >= 0
+            if (canMoveUp) {
+                if (!graph.containsVertex(up)) graph.addVertex(up)
+                val edge = graph.addEdge(point, up)
+                graph.setEdgeWeight(edge, map.getPoint(up, mapMaxX, mapMaxY)!!.toDouble())
+            }
+
+            val left = point.left()
+            val canMoveLeft = left.x >= 0
+            if (canMoveLeft) {
+                if (!graph.containsVertex(left)) graph.addVertex(left)
+                val edge = graph.addEdge(point, left)
+                graph.setEdgeWeight(edge, map.getPoint(left, mapMaxX, mapMaxY)!!.toDouble())
+            }
+        }
     }
 
     val algo = BellmanFordShortestPath(graph)
 
     val start = Point(0,0)
-    return algo.getPathWeight(start, endPoint).toInt()
+    return algo.getPathWeight(start, Point(dimX-1, dimY-1)).toInt()
 }
 
 fun readMap(input: List<String>): Map<Point, Int> {
