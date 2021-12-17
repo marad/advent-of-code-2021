@@ -14,7 +14,7 @@ class Foo
 fun main() {
     fun part1(input: List<String>): Int {
         val area = readArea(input)
-        val seq = findPossibleVelocities(area.yRange, ::yDamping, maxSteps = 1000, isLostCause = { pos, step ->
+        val seq = findPossibleVelocities(area.yRange, ::yDamping, maxSteps = 1000, isLostCause = { pos, _ ->
             pos < area.yRange.minOf { it }
         })
         return seq.last().second
@@ -25,7 +25,7 @@ fun main() {
         val ySeq = findPossibleVelocities(area.yRange, ::yDamping, startFrom = -1000, maxSteps = 2000, isLostCause = { pos, _ ->
             pos < area.yRange.minOf { it }
         })
-        val xSeq = findPossibleVelocities(area.xRange, ::xDamping, startFrom = -1000, maxSteps = 2000, isLostCause = { pos, step ->
+        val xSeq = findPossibleVelocities(area.xRange, ::xDamping, startFrom = -1000, maxSteps = 2000, isLostCause = { _, step ->
             step > 1000
         })
 
