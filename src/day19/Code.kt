@@ -1,4 +1,4 @@
-package template
+package day19
 
 import io.kotest.matchers.shouldBe
 import readInput
