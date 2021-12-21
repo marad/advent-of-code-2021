@@ -55,22 +55,22 @@ fun main() {
 
 fun countWinningProbabilities(game: Game): WinningUniverses {
     return runBlocking(Dispatchers.Default) {
-        (3..9).pmap { calcResults(game.clone(), it, emptyList()) }.sum()
+        (3..9).pmap { calcResults(game.clone(), it, 1) }.sum()
     }
 }
 
-fun calcResults(game: Game, currentRoll: Int, rollsSoFar: List<Int>): WinningUniverses {
+fun calcResults(game: Game, currentRoll: Int, universes: Long): WinningUniverses {
     game.tick(ConstantDie(currentRoll))
-    val newRolls = rollsSoFar + currentRoll
+    val thisRollUniverses = universes * rollUniverses(currentRoll)
     return if (game.isDone()) {
         when(game.winningPlayer()) {
-            1 -> WinningUniverses(newRolls.universes(), 0L)
-            2 -> WinningUniverses(0L, newRolls.universes())
+            1 -> WinningUniverses(thisRollUniverses, 0L)
+            2 -> WinningUniverses(0L, thisRollUniverses)
             else -> throw RuntimeException("There are no other players!")
         }
     } else {
         (3..9).map {
-            calcResults(game.clone(), it, newRolls)
+            calcResults(game.clone(), it, thisRollUniverses)
         }.sum()
     }
 }
@@ -142,10 +142,6 @@ class Game(var player1Position: Int,
         player1Turn = !player1Turn
         turns += 1
     }
-
-    fun debug() {
-        println("turn: $turns | P1: s $player1Score, p $player1Position, P2: s $player2Score, p $player2Position")
-    }
 }
 
 interface Die {
@@ -153,7 +149,7 @@ interface Die {
 }
 
 class DeterministicDie : Die {
-    private var nextRoll = 1;
+    private var nextRoll = 1
     private var rollCount = 0L
     override fun roll(): Int {
         return nextRoll.also {
@@ -171,10 +167,6 @@ class DeterministicDie : Die {
 
 class ConstantDie(val value: Int) : Die {
     override fun roll(): Int = value
-}
-
-fun List<Int>.universes(): Long {
-    return map(::rollUniverses).reduce { a, b -> a * b }
 }
 
 fun rollUniverses(roll: Int): Long = when(roll) {
