@@ -7,18 +7,6 @@ import java.lang.RuntimeException
 
 class Foo
 
-// no optimization
-// test 27s
-// prod 15s
-
-// top pmap with IO dispatcher (split to 9 threads)
-// test 11s
-// prod  6s
-
-// remove working on lists and pass universes in recursion
-// test 1900 ms
-// prod 900 ms
-
 fun main() {
     fun part1(input: List<String>): Int {
         val die = DeterministicDie()
@@ -26,10 +14,12 @@ fun main() {
             startingPosition(input[0]),
             startingPosition(input[1]),
         )
-        val settings = GameSettings(winningScore = 1000, rollPerTurnCount = 3)
         simulate(gameState,
-            updateState = { updateState(it, settings, die) },
-            isDone = { isDone(it, settings) })
+            updateState = {
+                val roll = die.roll() + die.roll() + die.roll()
+                updateState(it, roll)
+            },
+            isDone = { isDone(it, winningScore = 1000) })
 
         return (gameState.loosingPlayerScore() * die.rollCount()).toInt()
     }
@@ -40,8 +30,7 @@ fun main() {
 
         val startTime = System.currentTimeMillis()
         val gameState = GameState(pos1, pos2)
-        val calculator = UniversesCalculator(GameSettings(winningScore = 21, rollPerTurnCount = 1))
-        val winningUniverses = calculator.calculateWinningUniverses(gameState)
+        val winningUniverses = calculateWinningUniverses(gameState, winningScore = 21)
 
         println(winningUniverses)
 
@@ -67,17 +56,11 @@ fun main() {
     println("part 2 solution: ${part2(input)}")
 }
 
-class UniversesCalculator(private val gameSettings: GameSettings) {
-    fun calculateWinningUniverses(initialGameState: GameState): WinningUniverses {
-        return runBlocking(Dispatchers.Default) {
-            (3..9).pmap { calcResults(initialGameState.clone(), it, 1) }.sum()
-        }
-    }
-
-    private fun calcResults(gameState: GameState, currentRoll: Int, universes: Long): WinningUniverses {
-        updateState(gameState, gameSettings, ConstantDie(currentRoll))
+fun calculateWinningUniverses(initialGameState: GameState, winningScore: Int): WinningUniverses {
+    fun calcResults(gameState: GameState, currentRoll: Int, universes: Long): WinningUniverses {
+        updateState(gameState, currentRoll)
         val thisRollUniverses = universes * rollUniverses(currentRoll)
-        return if (isDone(gameState, gameSettings)) {
+        return if (isDone(gameState, winningScore)) {
             when(gameState.winningPlayer()) {
                 1 -> WinningUniverses(thisRollUniverses, 0L)
                 2 -> WinningUniverses(0L, thisRollUniverses)
@@ -89,8 +72,11 @@ class UniversesCalculator(private val gameSettings: GameSettings) {
             }.sum()
         }
     }
-}
 
+    return runBlocking(Dispatchers.Default) {
+        (3..9).pmap { calcResults(initialGameState.clone(), it, 1) }.sum()
+    }
+}
 
 data class WinningUniverses(
     val player1: Long,
@@ -112,15 +98,10 @@ fun simulate(state: GameState, updateState: (GameState) -> Unit, isDone: (GameSt
     }
 }
 
-fun isDone(state: GameState, settings: GameSettings) =
-    state.player1Score >= settings.winningScore || state.player2Score >= settings.winningScore
+fun isDone(state: GameState, winningScore: Int) =
+    state.player1Score >= winningScore || state.player2Score >= winningScore
 
-fun updateState(state: GameState, settings: GameSettings, die: Die) {
-    var roll = 0
-    repeat(settings.rollPerTurnCount) {
-        roll += die.roll()
-    }
-
+fun updateState(state: GameState, roll: Int) {
     if (state.player1Turn) {
         state.player1Position += roll
         while(state.player1Position > 10)
@@ -135,8 +116,6 @@ fun updateState(state: GameState, settings: GameSettings, die: Die) {
     state.player1Turn = !state.player1Turn
     state.turns += 1
 }
-
-data class GameSettings(val winningScore: Int, val rollPerTurnCount: Int)
 
 class GameState(var player1Position: Int,
                 var player2Position: Int,
@@ -171,14 +150,10 @@ fun rollUniverses(roll: Int): Long = when(roll) {
     else -> throw RuntimeException("Roll $roll should not have happend.")
 }
 
-interface Die {
-    fun roll(): Int
-}
-
-class DeterministicDie : Die {
+class DeterministicDie {
     private var nextRoll = 1
     private var rollCount = 0L
-    override fun roll(): Int {
+    fun roll(): Int {
         return nextRoll.also {
             rollCount += 1
             nextRoll += 1
@@ -190,10 +165,6 @@ class DeterministicDie : Die {
     fun rollCount(): Long {
         return rollCount
     }
-}
-
-class ConstantDie(val value: Int) : Die {
-    override fun roll(): Int = value
 }
 
 fun startingPosition(line: String): Int = line.substring(28).toInt()
