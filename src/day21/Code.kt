@@ -1,17 +1,13 @@
 package day21
 
 import io.kotest.matchers.shouldBe
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.*
 import readInput
 import java.lang.RuntimeException
-import kotlin.math.pow
 
 class Foo
 
 fun main() {
-    println(Fraction.zero + Fraction.one)
     fun part1(input: List<String>): Int {
         val die = DeterministicDie()
         val game = Game(
@@ -24,19 +20,22 @@ fun main() {
         return (game.loosingPlayerScore() * die.rollCount()).toInt()
     }
 
-    fun part2(input: List<String>): ULong {
+    fun part2(input: List<String>): Long {
         val pos1 = startingPosition(input[0])
         val pos2 = startingPosition(input[1])
 
+        val startTime = System.currentTimeMillis()
         val game = Game(pos1, pos2, winningScore = 21, rollPerTurnCount = 1)
         val winProbabilities = countWinningProbabilities(game)
 
         println(winProbabilities)
 
-        if (winProbabilities.player1 > winProbabilities.player2) {
-            return winProbabilities.player1
+        println("Found answer in ${System.currentTimeMillis()-startTime}ms")
+
+        return if (winProbabilities.player1 > winProbabilities.player2) {
+            winProbabilities.player1
         } else {
-            return winProbabilities.player2
+            winProbabilities.player2
         }
     }
 
@@ -48,31 +47,29 @@ fun main() {
     val input = readInput("${Foo::class.java.packageName}/input")
     println("part 1 solution: ${part1(input)}")
 
-    part2(testInput) shouldBe 444356092776315UL
+    part2(testInput) shouldBe 444356092776315L
     println("part 2 test ok")
     println("part 2 solution: ${part2(input)}")
 }
 
-/****
- *
- */
 
 fun countWinningProbabilities(game: Game): WinningUniverses {
-    return (3..9).map { calcResults(game.clone(), it, emptyList()) }.sum()
+    return runBlocking(Dispatchers.Default) {
+        (3..9).pmap { calcResults(game.clone(), it, emptyList()) }.sum()
+    }
 }
 
 fun calcResults(game: Game, currentRoll: Int, rollsSoFar: List<Int>): WinningUniverses {
     game.tick(ConstantDie(currentRoll))
     val newRolls = rollsSoFar + currentRoll
-//    println("Rolls: $newRolls")
     return if (game.isDone()) {
         when(game.winningPlayer()) {
-            1 -> WinningUniverses(newRolls.universes(), 0UL)
-            2 -> WinningUniverses(0UL, newRolls.universes())
+            1 -> WinningUniverses(newRolls.universes(), 0L)
+            2 -> WinningUniverses(0L, newRolls.universes())
             else -> throw RuntimeException("There are no other players!")
         }
     } else {
-        return (3..9).map {
+        (3..9).map {
             calcResults(game.clone(), it, newRolls)
         }.sum()
     }
@@ -81,8 +78,8 @@ fun calcResults(game: Game, currentRoll: Int, rollsSoFar: List<Int>): WinningUni
 fun startingPosition(line: String): Int = line.substring(28).toInt()
 
 data class WinningUniverses(
-    val player1: ULong,
-    val player2: ULong,
+    val player1: Long,
+    val player2: Long,
 ) {
     operator fun plus(other: WinningUniverses): WinningUniverses {
         return WinningUniverses(
@@ -92,24 +89,7 @@ data class WinningUniverses(
     }
 }
 
-data class WinProbability(
-    val player1: Fraction,
-    val player2: Fraction
-) {
-    operator fun plus(other: WinProbability): WinProbability {
-        return WinProbability(
-            player1 = player1 + other.player1,
-            player2 = player2 + other.player2,
-        )
-    }
-}
-
 fun List<WinningUniverses>.sum() = reduce { a, b -> a + b }
-
-data class GameResult(
-    val probability: Fraction,
-    val winningPlayer: Int
-)
 
 class Game(var player1Position: Int,
            var player2Position: Int,
@@ -189,131 +169,25 @@ class DeterministicDie : Die {
     }
 }
 
-class PredefinedDie(private val rollSequence: ByteArray) : Die {
-    private var index = 0
-    override fun roll(): Int {
-        if (index >= rollSequence.size) {
-            throw RuntimeException("Well, this game isn't finished yet but I don't know the next roll for sequence $rollSequence!")
-        }
-        return rollSequence[index++].toInt()
-    }
-
-}
-
 class ConstantDie(val value: Int) : Die {
     override fun roll(): Int = value
 }
 
-fun generateListOfAllPossibleDiceThrowSequences(sequenceLength: Int): Sequence<ByteArray> {
-    val possibleCombinations = 7.0.pow(sequenceLength).toInt()
-    val numberSeq = generateSequence(1) { it + 1}
-
-    return numberSeq.map { it ->
-        it.toString(7)
-            .padStart(sequenceLength, '0').map {
-                when (it) {
-                    '0' -> 3
-                    '1' -> 4
-                    '2' -> 5
-                    '3' -> 6
-                    '4' -> 7
-                    '5' -> 8
-                    '6' -> 9
-                    else -> throw RuntimeException("How?!")
-                }
-            }
-            .map { it.toByte() }
-            .toByteArray()
-    }.take(possibleCombinations)
-}
-
-
-fun List<Int>.universes(): ULong {
+fun List<Int>.universes(): Long {
     return map(::rollUniverses).reduce { a, b -> a * b }
 }
 
-fun rollUniverses(roll: Int): ULong = when(roll) {
-    3 -> 1UL
-    4 -> 3UL
-    5 -> 6UL
-    6 -> 7UL
-    7 -> 6UL
-    8 -> 3UL
-    9 -> 1UL
+fun rollUniverses(roll: Int): Long = when(roll) {
+    3 -> 1L
+    4 -> 3L
+    5 -> 6L
+    6 -> 7L
+    7 -> 6L
+    8 -> 3L
+    9 -> 1L
     else -> throw RuntimeException("Roll $roll should not have happend.")
 }
 
-fun List<Int>.probability(): Fraction {
-    return map(::rollProbability).reduce { a, b -> a * b}
-}
-
-fun rollProbability(roll: Int): Fraction {
-    return when(roll) {
-        3 -> Fraction(1, 27)
-        4 -> Fraction(3, 27)
-        5 -> Fraction(6, 27)
-        6 -> Fraction(7, 27)
-        7 -> Fraction(6, 27)
-        8 -> Fraction(3, 27)
-        9 -> Fraction(1, 27)
-        else -> throw RuntimeException("Roll $roll should not have happend.")
-    }
-}
-
-data class Fraction(private var dividend: Long, private var divisor: Long) {
-    fun dividend() = dividend
-    fun divisor() = divisor
-    companion object {
-        val zero = Fraction(0,1)
-        val one = Fraction(1,1)
-    }
-
-    init {
-        simplify()
-    }
-    operator fun plus(other: Fraction): Fraction {
-        val newFrac = Fraction(
-            dividend = dividend * other.divisor + other.dividend * divisor,
-            divisor = divisor * other.divisor
-        )
-        return newFrac
-    }
-
-    operator fun times(other: Fraction): Fraction {
-        val newFrac = Fraction(
-            dividend = dividend * other.dividend,
-            divisor = divisor * other.divisor
-        )
-        return newFrac
-    }
-
-    private fun simplify() {
-        if (dividend == 0L) return
-        val gcd = gcd(dividend, divisor)
-        dividend /= gcd
-        divisor /= gcd
-    }
-
-    override fun toString(): String = "($dividend/$divisor)"
-}
-
-// lowest common multiply
-fun lcm(a: Long, b: Long): Long {
-    return (a*b) / gcd(a,b)
-}
-
-// greates common divisor
-fun gcd(a: Long, b: Long): Long {
-    var x = a
-    var y = b
-    while(y != 0L) {
-        val rem = x % y
-        x = y
-        y = rem
-    }
-    return x
-}
-
-suspend fun <A, B> Array<A>.pmap(f: suspend (A) -> B): List<B> = coroutineScope {
+suspend fun <A, B> Iterable<A>.pmap(f: suspend (A) -> B): List<B> = coroutineScope {
     map { async { f(it) } }.awaitAll()
 }
