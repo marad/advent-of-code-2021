@@ -139,6 +139,9 @@ class GameState(var player1Position: Int,
 }
 
 
+// Rolling the dice once results in 1, 2 or 3.
+// Rolling it three times can produce sum of 3 to 9.
+// This is the distribution of each of the sums of 3 rolls across 27 universes created by the rolls
 fun rollUniverses(roll: Int): Long = when(roll) {
     3 -> 1L
     4 -> 3L
