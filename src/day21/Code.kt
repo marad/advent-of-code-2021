@@ -7,6 +7,18 @@ import java.lang.RuntimeException
 
 class Foo
 
+// no optimization
+// test 27s
+// prod 15s
+
+// top pmap with IO dispatcher (split to 9 threads)
+// test 11s
+// prod  6s
+
+// remove working on lists and pass universes in recursion
+// test 1900 ms
+// prod 900 ms
+
 fun main() {
     fun part1(input: List<String>): Int {
         val die = DeterministicDie()
@@ -26,16 +38,16 @@ fun main() {
 
         val startTime = System.currentTimeMillis()
         val game = Game(pos1, pos2, winningScore = 21, rollPerTurnCount = 1)
-        val winProbabilities = countWinningProbabilities(game)
+        val winningUniverses = countWinningProbabilities(game)
 
-        println(winProbabilities)
+        println(winningUniverses)
 
         println("Found answer in ${System.currentTimeMillis()-startTime}ms")
 
-        return if (winProbabilities.player1 > winProbabilities.player2) {
-            winProbabilities.player1
+        return if (winningUniverses.player1 > winningUniverses.player2) {
+            winningUniverses.player1
         } else {
-            winProbabilities.player2
+            winningUniverses.player2
         }
     }
 
@@ -51,7 +63,6 @@ fun main() {
     println("part 2 test ok")
     println("part 2 solution: ${part2(input)}")
 }
-
 
 fun countWinningProbabilities(game: Game): WinningUniverses {
     return runBlocking(Dispatchers.Default) {
