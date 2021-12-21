@@ -67,6 +67,7 @@ fun calculateWinningUniverses(initialGameState: GameState, winningScore: Int): W
                 else -> throw RuntimeException("There are no other players!")
             }
         } else {
+            // for each possible sum of three rolls
             (3..9).map {
                 calcResults(gameState.clone(), it, thisRollUniverses)
             }.sum()
@@ -74,6 +75,7 @@ fun calculateWinningUniverses(initialGameState: GameState, winningScore: Int): W
     }
 
     return runBlocking(Dispatchers.Default) {
+        // for each possible sum of three rolls
         (3..9).pmap { calcResults(initialGameState.clone(), it, 1) }.sum()
     }
 }
