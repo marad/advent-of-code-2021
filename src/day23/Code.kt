@@ -5,6 +5,13 @@ import readInput
 
 class Foo
 
+class Corridor {
+    val slots = Array<Char>(7) { ' ' }
+    val rooms = Array<Room>(4) { Room(' ', ' ', ' ', ' ')}
+}
+
+data class Room(val a: Char, val b: Char, val c: Char, val d: Char)
+
 fun main() {
     fun part1(input: List<String>): Int {
         return 0
